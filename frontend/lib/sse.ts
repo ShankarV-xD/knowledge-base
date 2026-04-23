@@ -69,6 +69,7 @@ export async function streamChat(
 
     const decoder = new TextDecoder();
     let buffer = "";
+    let gotDone = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -94,14 +95,24 @@ export async function streamChat(
               if (event.content) onToken(event.content);
               break;
             case "done":
+              gotDone = true;
               if (event.conversation_id) convId = event.conversation_id;
               onDone(convId, event.title ?? undefined);
+              break;
+            case "error":
+              gotDone = true;
+              onError(event.message || "Generation failed");
               break;
           }
         } catch {
           // Skip malformed JSON
         }
       }
+    }
+
+    // Stream closed without a done/error event (backend crashed mid-stream)
+    if (!gotDone) {
+      onError("Response interrupted. Please try again.");
     }
   } catch (err) {
     // User aborted intentionally — not an error

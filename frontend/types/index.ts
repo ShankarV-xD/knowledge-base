@@ -50,11 +50,12 @@ export interface DigestResponse {
 }
 
 export interface ChatStreamEvent {
-  type: "sources" | "token" | "done";
+  type: "sources" | "token" | "done" | "error";
   content?: string;
   sources?: Source[];
   conversation_id?: string;
   title?: string;
+  message?: string;
 }
 
 export interface UploadResponse {

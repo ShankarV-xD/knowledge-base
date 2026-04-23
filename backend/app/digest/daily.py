@@ -59,7 +59,7 @@ async def generate_daily_digest(db, user_id, gemini_api_key=None) -> dict:
     )
 
     genai.configure(api_key=gemini_api_key or settings.gemini_api_key)
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
 
     try:
         response = await asyncio.get_event_loop().run_in_executor(

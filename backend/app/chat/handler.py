@@ -80,7 +80,7 @@ async def stream_chat_response(
                             chunk_ids=[c["id"] for c in chunks],
                             filter_source_type=source_type, filter_days=days)
 
-    model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=system)
+    model = genai.GenerativeModel("gemini-2.0-flash", system_instruction=system)
 
     def _generate():
         return model.generate_content(user_message, stream=True)
@@ -98,10 +98,18 @@ async def stream_chat_response(
 
     yield f"data: {json.dumps({'type': 'sources', 'sources': chunk_meta})}\n\n"
 
-    for part in response:
-        if part.text:
-            full_response += part.text
-            yield f"data: {json.dumps({'type': 'token', 'content': part.text})}\n\n"
+    try:
+        for part in response:
+            if part.text:
+                full_response += part.text
+                yield f"data: {json.dumps({'type': 'token', 'content': part.text})}\n\n"
+    except Exception as e:
+        error_msg = "Generation failed — model overloaded, please try again." if "503" in str(e) or "UNAVAILABLE" in str(e) else "Generation failed. Please try again."
+        yield f"data: {json.dumps({'type': 'error', 'message': error_msg})}\n\n"
+        if full_response:
+            await crud.add_message(db, conversation_id, "assistant", full_response,
+                                    chunk_ids=[c["id"] for c in chunks])
+        return
 
     await crud.add_message(db, conversation_id, "assistant", full_response,
                             chunk_ids=[c["id"] for c in chunks])
