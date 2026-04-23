@@ -443,7 +443,7 @@ export async function exportConversationAsPDF(
     // ── Accent bar tracking ──────────────────────────────────────────────────
     const barColor  = isUser ? [100, 80, 220] as [number,number,number] : [60, 55, 100] as [number,number,number];
     const startY    = pillTopY - 1;
-    const startPage = (doc.internal as { getCurrentPageInfo(): { pageNumber: number } }).getCurrentPageInfo().pageNumber;
+    const startPage = (doc.internal as unknown as { getCurrentPageInfo(): { pageNumber: number } }).getCurrentPageInfo().pageNumber;
 
     // ── Render segments ──────────────────────────────────────────────────────
     for (const seg of msg.segments) {
@@ -468,7 +468,7 @@ export async function exportConversationAsPDF(
     }
 
     const endY    = y + 2;
-    const endPage = (doc.internal as { getCurrentPageInfo(): { pageNumber: number } }).getCurrentPageInfo().pageNumber;
+    const endPage = (doc.internal as unknown as { getCurrentPageInfo(): { pageNumber: number } }).getCurrentPageInfo().pageNumber;
 
     // ── Draw accent bar (one segment per spanned page) ───────────────────────
     doc.setFillColor(...barColor);
@@ -501,7 +501,7 @@ export async function exportConversationAsPDF(
 
   // ── Footers ───────────────────────────────────────────────────────────────
 
-  const totalPages = (doc.internal as { getNumberOfPages(): number }).getNumberOfPages();
+  const totalPages = (doc.internal as unknown as { getNumberOfPages(): number }).getNumberOfPages();
   drawFooters(totalPages);
 
   doc.save(`${filename}_${new Date().toISOString().split("T")[0]}.pdf`);
