@@ -1,0 +1,107 @@
+import os
+import re
+import uuid
+from pathlib import Path
+from urllib.parse import urlparse
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.db.client import get_db
+from app.db import crud
+from app.ingestion.pipeline import detect_source_type, process_document_background, process_url_background
+from app.ingestion.queue import enqueue_ingestion
+from app.auth.dependency import get_current_user
+from app.config import settings
+
+router = APIRouter(prefix="/api/upload", tags=["upload"])
+
+
+@router.post("")
+async def upload_file(
+    file: UploadFile = File(...),
+    current_user_id: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not file.filename:
+        raise HTTPException(400, "No filename provided")
+
+    file_bytes = await file.read()
+    max_bytes = settings.max_upload_size_mb * 1024 * 1024
+    if len(file_bytes) > max_bytes:
+        raise HTTPException(413, f"File exceeds {settings.max_upload_size_mb}MB limit")
+
+    source_type = await detect_source_type(file.filename, file.content_type or "")
+    doc_title = Path(file.filename).stem
+
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    file_id = uuid.uuid4()
+    saved_path = os.path.join(settings.upload_dir, f"{file_id}_{file.filename}")
+    with open(saved_path, "wb") as f:
+        f.write(file_bytes)
+
+    doc = await crud.create_document(
+        db, user_id=current_user_id, title=doc_title,
+        source_type=source_type, file_path=saved_path,
+    )
+
+    await enqueue_ingestion(
+        process_document_background(
+            str(doc.id), file_bytes, file.filename,
+            source_type, doc_title, current_user_id,
+        )
+    )
+
+    return {
+        "document_id": str(doc.id),
+        "title": doc_title,
+        "source_type": source_type,
+        "status": "processing",
+    }
+
+
+class UrlImportRequest(BaseModel):
+    url: str
+
+
+@router.post("/url")
+async def import_url(
+    req: UrlImportRequest,
+    current_user_id: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    url = req.url.strip()
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(400, "URL must start with http:// or https://")
+
+    import httpx
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=15) as client:
+            resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+            resp.raise_for_status()
+    except Exception as e:
+        raise HTTPException(400, f"Failed to fetch URL: {str(e)}")
+
+    content_type = resp.headers.get("content-type", "")
+    if "html" not in content_type and "text" not in content_type:
+        raise HTTPException(400, "URL must point to an HTML or text page")
+
+    html_content = resp.text
+    title_match = re.search(r"<title[^>]*>([^<]+)</title>", html_content, re.IGNORECASE)
+    domain = urlparse(url).netloc.replace("www.", "")
+    doc_title = (title_match.group(1).strip()[:120] if title_match else domain) or domain
+
+    doc = await crud.create_document(
+        db, user_id=current_user_id, title=doc_title,
+        source_type="markdown", file_path=url,
+    )
+
+    await enqueue_ingestion(
+        process_url_background(str(doc.id), url, html_content, doc_title, current_user_id)
+    )
+
+    return {
+        "document_id": str(doc.id),
+        "title": doc_title,
+        "source_type": "markdown",
+        "status": "processing",
+    }
