@@ -25,7 +25,7 @@ This guide deploys the full stack — FastAPI backend, Next.js frontend, Postgre
 4. Go to **Settings → Database** and copy:
    - **Transaction pooler** connection string (port **6543**, mode `transaction`) — use this as `DATABASE_URL`
    - It looks like: `postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres`
-5. Append these params to the URL: `?prepared_statements=false&sslmode=require`
+5. Append `?sslmode=require` to the URL
 
 Run your schema migrations by connecting with the **direct connection** string (port 5432, not pooler) and running:
 
@@ -86,9 +86,9 @@ services:
         sync: false
       - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
-      - key: JWT_SECRET
+      - key: AUTH_SECRET
         generateValue: true
-      - key: FRONTEND_URL
+      - key: ALLOWED_ORIGINS
         sync: false
 ```
 
@@ -103,12 +103,12 @@ services:
 7. Add environment variables (from the keys above):
 
 ```
-DATABASE_URL=postgresql+asyncpg://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?prepared_statements=false&sslmode=require
+DATABASE_URL=postgresql+asyncpg://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?sslmode=require
 GEMINI_API_KEY=your_key
 UPSTASH_REDIS_REST_URL=https://...upstash.io
 UPSTASH_REDIS_REST_TOKEN=your_token
-JWT_SECRET=any_long_random_string
-FRONTEND_URL=https://your-app.vercel.app
+AUTH_SECRET=any_long_random_string_32_chars_min
+ALLOWED_ORIGINS=https://your-app.vercel.app
 ```
 
 8. Click **Deploy** — Render will build and start the service
@@ -135,15 +135,7 @@ async def health():
 
 ## Step 5 — Deploy Frontend on Vercel
 
-### 5a. Set environment variables
-
-Create `frontend/.env.production` locally (do NOT commit this):
-
-```env
-NEXT_PUBLIC_API_URL=https://pkb-backend.onrender.com
-```
-
-### 5b. Deploy
+### 5a. Deploy
 
 1. Go to [vercel.com](https://vercel.com) → **New Project**
 2. Import your GitHub repo
@@ -152,7 +144,14 @@ NEXT_PUBLIC_API_URL=https://pkb-backend.onrender.com
 5. Under **Environment Variables**, add:
 
 ```
-NEXT_PUBLIC_API_URL = https://pkb-backend.onrender.com
+NEXTAUTH_URL=https://your-app.vercel.app
+NEXTAUTH_SECRET=your_nextauth_secret
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+NEXT_PUBLIC_BACKEND_URL=https://your-render-service.onrender.com
+NEXT_PUBLIC_SUPABASE_URL=https://yourproject.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_ENABLE_TEST_LOGIN=false
 ```
 
 6. Click **Deploy**
@@ -162,7 +161,7 @@ NEXT_PUBLIC_API_URL = https://pkb-backend.onrender.com
 
 Go back to Render → your backend service → **Environment** and update:
 ```
-FRONTEND_URL=https://your-app.vercel.app
+ALLOWED_ORIGINS=https://your-app.vercel.app
 ```
 
 Then trigger a redeploy on Render (click **Manual Deploy**).
@@ -188,16 +187,27 @@ Then trigger a redeploy on Render (click **Manual Deploy**).
 |---|---|
 | `DATABASE_URL` | Supabase Transaction Pooler URL (asyncpg dialect, port 6543) |
 | `GEMINI_API_KEY` | Google AI Studio API key |
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SERVICE_KEY` | Supabase service role key (not anon key) |
+| `SUPABASE_STORAGE_BUCKET` | Supabase storage bucket name |
 | `UPSTASH_REDIS_REST_URL` | Upstash Redis REST endpoint |
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis auth token |
-| `JWT_SECRET` | Any long random string for signing JWTs |
-| `FRONTEND_URL` | Vercel URL (for CORS) |
+| `AUTH_SECRET` | Random string ≥32 chars for signing JWTs |
+| `ALLOWED_ORIGINS` | Vercel URL (for CORS), comma-separated if multiple |
+| `ENABLE_TEST_LOGIN` | `false` in production, `true` to enable test account locally |
 
 ### Frontend (Vercel)
 
 | Variable | Description |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | Your Render backend URL |
+| `NEXTAUTH_URL` | Your Vercel deployment URL |
+| `NEXTAUTH_SECRET` | Random string for NextAuth session signing |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `NEXT_PUBLIC_BACKEND_URL` | Your Render backend URL |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
+| `NEXT_PUBLIC_ENABLE_TEST_LOGIN` | `false` in production |
 
 ---
 
@@ -251,7 +261,7 @@ If you have a domain from Namecheap, Google Domains, or similar:
 
 **Ingestion fails immediately**
 - Check Render logs for the specific error
-- Most common: wrong `DATABASE_URL` dialect or missing `?prepared_statements=false`
+- Most common: wrong `DATABASE_URL` dialect or missing `?sslmode=require`
 
 **Embeddings fail**
 - Gemini free tier enforces rate limits — if ingesting large PDFs, you may hit 1,500/day
