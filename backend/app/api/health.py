@@ -8,7 +8,7 @@ _start_time = time.time()
 router = APIRouter(tags=["health"])
 
 
-@router.get("/ping")
+@router.api_route("/ping", methods=["GET", "HEAD"])
 async def ping():
     return {"status": "ok", "service": "knowledge-base-api"}
 
