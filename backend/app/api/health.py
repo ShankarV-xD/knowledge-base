@@ -13,7 +13,7 @@ async def ping():
     return {"status": "ok", "service": "knowledge-base-api"}
 
 
-@router.get("/health")
+@router.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     """
     Detailed health check. Returns:
