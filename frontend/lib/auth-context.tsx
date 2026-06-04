@@ -8,7 +8,7 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { getToken, setToken, clearToken, getStoredEmail, setStoredEmail } from "./auth-token";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
@@ -16,6 +16,7 @@ const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 interface AuthUser {
   id: string;
   email: string;
+  isDemo?: boolean;
 }
 
 interface AuthContextValue {
@@ -32,7 +33,6 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setTokenState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return res.json();
       })
       .then((data) => {
-        setUser({ id: data.user_id, email: storedEmail || "" });
+        setUser({ id: data.user_id, email: storedEmail || "", isDemo: !!data.is_demo });
         setTokenState(storedToken);
       })
       .catch(() => {
@@ -117,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await res.json();
     setToken(data.access_token);
     setStoredEmail(data.user.email);
-    setUser(data.user);
+    setUser({ ...data.user, isDemo: true });
     setTokenState(data.access_token);
     router.push("/chat/new");
   }, [router]);

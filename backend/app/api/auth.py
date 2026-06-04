@@ -104,6 +104,19 @@ async def demo_login(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/me")
-async def get_me(current_user_id: str = Depends(get_current_user)):
+async def get_me(
+    current_user_id: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Validate a stored token and return user info."""
-    return {"status": "ok", "user_id": current_user_id}
+    is_demo = False
+    try:
+        from sqlalchemy import select
+        from app.db.models import User
+        import uuid as _uuid
+        result = await db.execute(select(User.email).where(User.id == _uuid.UUID(current_user_id)))
+        email = result.scalar_one_or_none()
+        is_demo = (email or "").lower() == settings.demo_email.strip().lower()
+    except Exception:
+        pass
+    return {"status": "ok", "user_id": current_user_id, "is_demo": is_demo}

@@ -77,6 +77,13 @@ async def startup():
     except Exception as e:
         logger.warning("Startup: ensure_schema skipped (DB unreachable): %s", e)
 
+    # Seed the demo user's documents (idempotent; no-op if already done)
+    from app.seeder import seed_demo_documents_if_needed
+    try:
+        await seed_demo_documents_if_needed()
+    except Exception as e:
+        logger.warning("Startup: demo seeding skipped: %s", e)
+
 
 @app.on_event("shutdown")
 async def shutdown():

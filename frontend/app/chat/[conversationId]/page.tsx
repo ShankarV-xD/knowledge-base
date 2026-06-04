@@ -420,6 +420,9 @@ export default function ChatPage() {
               </div>
             </div>
           )}
+          {user?.isDemo && !conversationId && messages.length === 0 && !messagesLoading && (
+            <DemoSuggestions onPick={(q) => handleSend(q)} />
+          )}
           <MessageList messages={messages} onSourceClick={handleSourceClick} onRegenerate={handleRegenerate} loading={messagesLoading} />
         </div>
         <FilterBar
@@ -448,5 +451,42 @@ export default function ChatPage() {
         onClose={() => setSourcePreviewDoc(null)}
       />
     </>
+  );
+}
+
+const DEMO_QUESTIONS = [
+  "Who is Shankar and what does he do?",
+  "What's the most impressive project Shankar has built?",
+  "Why did Shankar build the Agentic Web Researcher from scratch instead of using LangChain?",
+  "What does Shankar work on at Randomwalk AI?",
+  "What's Shankar's tech stack?",
+  "How can a recruiter contact Shankar?",
+];
+
+function DemoSuggestions({ onPick }: { onPick: (q: string) => void }) {
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-12">
+      <div className="text-center mb-6">
+        <p className="text-[11px] uppercase tracking-widest text-accent mb-2">Demo</p>
+        <h2 className="text-xl font-semibold text-primary-dark mb-2">
+          Ask anything about Shankar
+        </h2>
+        <p className="text-sm text-secondary">
+          The demo account has three documents loaded about Shankar's background, projects, and work.
+          Try one of these, or type your own question.
+        </p>
+      </div>
+      <div className="grid sm:grid-cols-2 gap-2">
+        {DEMO_QUESTIONS.map((q) => (
+          <button
+            key={q}
+            onClick={() => onPick(q)}
+            className="text-left text-sm text-primary-dark bg-surface-dark hover:bg-surface-dark/70 border border-border-dark hover:border-accent/40 rounded-lg px-3 py-2.5 transition-colors"
+          >
+            {q}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
