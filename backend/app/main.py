@@ -54,19 +54,28 @@ async def startup():
     _validate_settings()
     logger.info("Knowledge Base API starting up...")
 
-    # Reset any documents stuck in 'processing' from a previous crash
+    # DB-dependent operations are wrapped individually so a paused/unreachable
+    # database can't crash the whole app. /health will report 'degraded' and
+    # UptimeRobot pings still keep Render warm; once the DB is reachable again
+    # subsequent requests recover automatically.
+
     from app.db.client import AsyncSessionLocal
     from app.db.crud import reset_stuck_documents
-    async with AsyncSessionLocal() as db:
-        await reset_stuck_documents(db)
+    try:
+        async with AsyncSessionLocal() as db:
+            await reset_stuck_documents(db)
+    except Exception as e:
+        logger.warning("Startup: reset_stuck_documents skipped (DB unreachable): %s", e)
 
-    # Start the serialized ingestion worker (prevents concurrent-upload races)
+    # Ingestion worker is in-process only, no DB calls — safe to run unconditionally
     from app.ingestion.queue import start_ingestion_worker
     await start_ingestion_worker()
 
-    # Ensure users table + HNSW index exist (idempotent)
     from app.db.ensure_indexes import ensure_schema
-    await ensure_schema()
+    try:
+        await ensure_schema()
+    except Exception as e:
+        logger.warning("Startup: ensure_schema skipped (DB unreachable): %s", e)
 
 
 @app.on_event("shutdown")
