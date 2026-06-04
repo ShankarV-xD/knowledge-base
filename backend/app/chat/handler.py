@@ -104,8 +104,14 @@ async def stream_chat_response(
                 full_response += part.text
                 yield f"data: {json.dumps({'type': 'token', 'content': part.text})}\n\n"
     except Exception as e:
-        error_msg = "Generation failed — model overloaded, please try again." if "503" in str(e) or "UNAVAILABLE" in str(e) else "Generation failed. Please try again."
-        yield f"data: {json.dumps({'type': 'error', 'message': error_msg})}\n\n"
+        err_str = str(e).lower()
+        is_quota = any(k in err_str for k in ("429", "quota", "resource_exhausted", "rate limit", "too many requests"))
+        is_overload = "503" in err_str or "unavailable" in err_str
+        if is_quota:
+            yield f"data: {json.dumps({'type': 'quota_exceeded', 'message': 'Free Gemini quota is exhausted. Add your own free API key to keep going.'})}\n\n"
+        else:
+            error_msg = "Generation failed — model overloaded, please try again." if is_overload else "Generation failed. Please try again."
+            yield f"data: {json.dumps({'type': 'error', 'message': error_msg})}\n\n"
         if full_response:
             await crud.add_message(db, conversation_id, "assistant", full_response,
                                     chunk_ids=[c["id"] for c in chunks])

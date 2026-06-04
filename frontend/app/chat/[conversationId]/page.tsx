@@ -186,6 +186,18 @@ export default function ChatPage() {
           });
           setIsStreaming(false);
         },
+        onQuotaExceeded: (message) => {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last.role === "assistant")
+              updated[updated.length - 1] = { ...last, content: message, streaming: false };
+            return updated;
+          });
+          setIsStreaming(false);
+          // Auto-open the BYOK modal so the user can fix it in one click
+          window.dispatchEvent(new CustomEvent("open-gemini-key"));
+        },
       });
     },
     [activeConvId, sourceType, daysFilter, topN, refreshConversations]

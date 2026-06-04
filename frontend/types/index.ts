@@ -50,7 +50,7 @@ export interface DigestResponse {
 }
 
 export interface ChatStreamEvent {
-  type: "sources" | "token" | "done" | "error";
+  type: "sources" | "token" | "done" | "error" | "quota_exceeded";
   content?: string;
   sources?: Source[];
   conversation_id?: string;

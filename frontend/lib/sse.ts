@@ -11,6 +11,7 @@ interface StreamChatOptions {
   onToken: (token: string) => void;
   onDone: (conversationId: string, title?: string) => void;
   onError: (error: string) => void;
+  onQuotaExceeded?: (message: string) => void;
   signal?: AbortSignal;
 }
 
@@ -28,6 +29,7 @@ export async function streamChat(
     onToken,
     onDone,
     onError,
+    onQuotaExceeded,
     signal,
   } = options;
 
@@ -102,6 +104,14 @@ export async function streamChat(
             case "error":
               gotDone = true;
               onError(event.message || "Generation failed");
+              break;
+            case "quota_exceeded":
+              gotDone = true;
+              if (onQuotaExceeded) {
+                onQuotaExceeded(event.message || "Free quota exhausted. Add your own API key to continue.");
+              } else {
+                onError(event.message || "Free quota exhausted");
+              }
               break;
           }
         } catch {

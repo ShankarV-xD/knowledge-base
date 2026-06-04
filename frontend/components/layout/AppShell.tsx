@@ -72,6 +72,15 @@ export default function AppShell({
   const [geminiKeyOpen, setGeminiKeyOpen] = useState(false);
   const isMobile = useIsMobile();
 
+  // Anywhere in the app can request the BYOK modal by dispatching
+  //   window.dispatchEvent(new CustomEvent("open-gemini-key"))
+  // Used by the chat stream when a 429 / quota_exceeded event arrives.
+  useEffect(() => {
+    const handler = () => setGeminiKeyOpen(true);
+    window.addEventListener("open-gemini-key", handler);
+    return () => window.removeEventListener("open-gemini-key", handler);
+  }, []);
+
   // Handle "Ask about this" from Digest — navigate to chat if not already there,
   // encoding the message as a ?q= query param the chat page will auto-send.
   const handleDigestAsk = (message: string) => {
