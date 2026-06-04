@@ -1,7 +1,9 @@
+import secrets
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.config import settings
 from app.db.client import get_db
 from app.db import crud
 from app.auth.jwt_utils import create_access_token
@@ -57,17 +59,41 @@ async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(
     check_rate_limit(f"login:{request.client.host if request.client else 'unknown'}", max_requests=10, window_seconds=60)
     email = req.email.strip().lower()
 
-    if settings.enable_test_login and email == "admin" and req.password == "password":
-        token = create_access_token("admin-demo-user", "admin")
-        return {
-            "access_token": token,
-            "token_type": "bearer",
-            "user": {"id": "admin-demo-user", "email": "admin"},
-        }
-
     user = await crud.get_user_by_email(db, email)
     if not user or not _verify_password(req.password, user.password_hash):
         raise HTTPException(401, "Invalid email or password")
+
+    token = create_access_token(str(user.id), user.email)
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {"id": str(user.id), "email": user.email},
+    }
+
+
+@router.post("/demo")
+async def demo_login(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Issue a token for a shared public demo account. Anyone hitting this
+    endpoint logs in as the same user — convenient for portfolio visitors,
+    but everything in the account is visible/editable by every visitor.
+    """
+    if not settings.enable_demo_login:
+        raise HTTPException(404, "Demo login is disabled")
+
+    check_rate_limit(
+        f"demo:{request.client.host if request.client else 'unknown'}",
+        max_requests=10,
+        window_seconds=60,
+    )
+
+    email = settings.demo_email.strip().lower()
+    user = await crud.get_user_by_email(db, email)
+    if not user:
+        # First demo request: lazily create the shared account with a random
+        # password that nobody needs to know (login happens via this endpoint only)
+        random_password = secrets.token_urlsafe(32)
+        user = await crud.create_user(db, email, _hash_password(random_password))
 
     token = create_access_token(str(user.id), user.email)
     return {

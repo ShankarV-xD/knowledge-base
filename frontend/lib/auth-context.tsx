@@ -24,6 +24,7 @@ interface AuthContextValue {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  demoLogin: () => Promise<void>;
   logout: () => void;
 }
 
@@ -107,6 +108,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/chat/new");
   }, [router]);
 
+  const demoLogin = useCallback(async () => {
+    const res = await fetch(`${API_BASE}/api/auth/demo`, { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "Demo login failed" }));
+      throw new Error(err.detail || "Demo login failed");
+    }
+    const data = await res.json();
+    setToken(data.access_token);
+    setStoredEmail(data.user.email);
+    setUser(data.user);
+    setTokenState(data.access_token);
+    router.push("/chat/new");
+  }, [router]);
+
   const logout = useCallback(() => {
     clearToken();
     setUser(null);
@@ -115,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, register, demoLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );

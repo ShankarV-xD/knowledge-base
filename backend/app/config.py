@@ -14,8 +14,10 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
     # JWT secret — set AUTH_SECRET in .env, must be long random string in production
     auth_secret: str = "changeme-set-AUTH_SECRET-in-dotenv!"
-    # Set to true only in local/dev environments to enable the hardcoded test account
-    enable_test_login: bool = False
+    # Public demo account — when true, POST /api/auth/demo issues a token for a
+    # shared demo user so visitors can try the app without signing up
+    enable_demo_login: bool = True
+    demo_email: str = "demo@knowledge-base.app"
 
     class Config:
         env_file = ".env"

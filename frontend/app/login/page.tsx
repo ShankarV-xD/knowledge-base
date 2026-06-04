@@ -21,7 +21,7 @@ function EyeIcon({ open }: { open: boolean }) {
 }
 
 export default function LoginPage() {
-  const { login, register, isLoading, user } = useAuth();
+  const { login, register, demoLogin, isLoading, user } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -29,6 +29,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   // Already logged in → go to chat
   useEffect(() => {
@@ -54,10 +55,15 @@ export default function LoginPage() {
     }
   };
 
-  const fillTestCredentials = () => {
-    setTab("login");
-    setEmail("admin");
-    setPassword("password");
+  const handleDemo = async () => {
+    setError("");
+    setDemoLoading(true);
+    try {
+      await demoLogin();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Demo login failed");
+      setDemoLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -176,25 +182,34 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Test credentials hint — only shown when NEXT_PUBLIC_ENABLE_TEST_LOGIN=true */}
-        {process.env.NEXT_PUBLIC_ENABLE_TEST_LOGIN === "true" && (
-          <div className="mt-6 p-3 rounded-lg bg-surface-dark border border-border-dark/60">
-            <p className="text-[11px] text-secondary text-center mb-2">
-              Quick test access
-            </p>
-            <button
-              onClick={fillTestCredentials}
-              className="w-full flex items-center justify-between px-3 py-1.5 rounded-md hover:bg-bg-dark transition-colors group"
-            >
-              <span className="text-xs text-secondary font-mono">
-                admin <span className="text-secondary/40">/</span> password
-              </span>
-              <span className="text-[10px] text-accent opacity-0 group-hover:opacity-100 transition-opacity">
-                Fill →
-              </span>
-            </button>
-          </div>
-        )}
+        {/* Divider */}
+        <div className="flex items-center gap-3 my-5">
+          <div className="flex-1 h-px bg-border-dark" />
+          <span className="text-[11px] text-secondary uppercase tracking-wider">or</span>
+          <div className="flex-1 h-px bg-border-dark" />
+        </div>
+
+        {/* Demo login — no signup required */}
+        <button
+          onClick={handleDemo}
+          disabled={demoLoading || submitting}
+          className="w-full py-2.5 bg-surface-dark hover:bg-surface-dark/70 border border-border-dark hover:border-accent/40 text-primary-dark font-medium text-sm rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+        >
+          {demoLoading ? (
+            <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : (
+            <>
+              Try the demo
+              <span className="text-accent group-hover:translate-x-0.5 transition-transform">→</span>
+            </>
+          )}
+        </button>
+        <p className="text-[11px] text-secondary text-center mt-2">
+          Shared demo account · no signup needed
+        </p>
       </div>
     </div>
   );
