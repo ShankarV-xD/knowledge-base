@@ -61,9 +61,10 @@ async def rename_document(db, doc_id: str, title: str):
 
 async def reset_stuck_documents(db):
     """
-    On server startup, reset documents stuck mid-ingestion to 'error' so users can retry.
-    - 'processing' → crashed mid-run
-    - 'pending' with existing chunks → was queued but never picked up (e.g. after migration)
+    On server startup, mark documents in a partial-ingestion state as 'error'
+    so users can retry them:
+    - 'processing' → worker crashed mid-run
+    - 'pending' with existing chunks → orphaned, needs re-embedding
     """
     await db.execute(
         update(Document)
@@ -73,7 +74,6 @@ async def reset_stuck_documents(db):
             error_message="Server restarted during processing — click retry to re-process.",
         )
     )
-    # Pending docs that already have chunks were re-queued by a migration but never processed
     await db.execute(
         update(Document)
         .where(Document.status == "pending", Document.chunk_count > 0)
