@@ -886,6 +886,20 @@ export default function Sidebar({
               </div>
             )
           )}
+
+          {/* Subtle attribution */}
+          {!showIconOnly && (
+            <div className="px-3 pb-3 text-center">
+              <a
+                href="https://shankarv-portfolio.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-secondary/60 hover:text-secondary transition-colors"
+              >
+                Built by Shankar V
+              </a>
+            </div>
+          )}
         </div>
       </aside>
     </>

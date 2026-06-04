@@ -85,8 +85,6 @@ async def stream_chat_response(
     def _generate():
         return model.generate_content(user_message, stream=True)
 
-    response = await asyncio.get_event_loop().run_in_executor(None, _generate)
-
     full_response = ""
 
     chunk_meta = [
@@ -98,20 +96,30 @@ async def stream_chat_response(
 
     yield f"data: {json.dumps({'type': 'sources', 'sources': chunk_meta})}\n\n"
 
+    def _emit_error_event(exc: Exception) -> str:
+        err_str = str(exc).lower()
+        is_quota = any(k in err_str for k in ("429", "quota", "resource_exhausted", "rate limit", "too many requests"))
+        is_overload = "503" in err_str or "unavailable" in err_str
+        if is_quota:
+            return f"data: {json.dumps({'type': 'quota_exceeded', 'message': 'Free Gemini quota is exhausted. Add your own free API key to keep going.'})}\n\n"
+        error_msg = "Generation failed — model overloaded, please try again." if is_overload else "Generation failed. Please try again."
+        return f"data: {json.dumps({'type': 'error', 'message': error_msg})}\n\n"
+
+    # generate_content(stream=True) makes its FIRST network call eagerly,
+    # so 429s during stream setup raise here — not during iteration.
+    try:
+        response = await asyncio.get_event_loop().run_in_executor(None, _generate)
+    except Exception as e:
+        yield _emit_error_event(e)
+        return
+
     try:
         for part in response:
             if part.text:
                 full_response += part.text
                 yield f"data: {json.dumps({'type': 'token', 'content': part.text})}\n\n"
     except Exception as e:
-        err_str = str(e).lower()
-        is_quota = any(k in err_str for k in ("429", "quota", "resource_exhausted", "rate limit", "too many requests"))
-        is_overload = "503" in err_str or "unavailable" in err_str
-        if is_quota:
-            yield f"data: {json.dumps({'type': 'quota_exceeded', 'message': 'Free Gemini quota is exhausted. Add your own free API key to keep going.'})}\n\n"
-        else:
-            error_msg = "Generation failed — model overloaded, please try again." if is_overload else "Generation failed. Please try again."
-            yield f"data: {json.dumps({'type': 'error', 'message': error_msg})}\n\n"
+        yield _emit_error_event(e)
         if full_response:
             await crud.add_message(db, conversation_id, "assistant", full_response,
                                     chunk_ids=[c["id"] for c in chunks])
