@@ -104,12 +104,12 @@ export default function LibraryPage() {
           </div>
 
           {/* Filter tabs */}
-          <div className="flex items-center gap-1 mb-6">
+          <div className="flex items-center gap-1 mb-6 overflow-x-auto -mx-4 px-4 scrollbar-hide">
             {["all", "obsidian", "notion", "pdf", "markdown"].map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ${
                   filter === f
                     ? "bg-accent/15 text-accent"
                     : "text-secondary hover:text-primary-dark hover:bg-surface-dark"

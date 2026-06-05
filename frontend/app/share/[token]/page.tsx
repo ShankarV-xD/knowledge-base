@@ -48,7 +48,7 @@ export default function SharedConversationPage() {
     <div className="min-h-screen bg-bg-dark text-primary-dark">
       {/* Header */}
       <div className="border-b border-border-dark bg-sidebar-dark sticky top-0 z-10">
-        <div className="2xl:max-w-6xl lg:max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="2xl:max-w-6xl lg:max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div>
             <p className="text-[10px] text-secondary uppercase tracking-wider mb-0.5">Knowledge Base</p>
             <h1 className="text-sm font-semibold text-primary-dark truncate max-w-xs sm:max-w-md">
@@ -64,7 +64,7 @@ export default function SharedConversationPage() {
       </div>
 
       {/* Messages */}
-      <div className="2xl:max-w-6xl lg:max-w-3xl mx-auto px-6 py-8 space-y-8">
+      <div className="2xl:max-w-6xl lg:max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         {data.messages.map((msg) => {
           const isUser = msg.role === "user";
           return (

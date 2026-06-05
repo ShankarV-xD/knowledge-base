@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide scrollbar but keep scrollability — used for horizontally overflowing filter rows on mobile */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE / Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;             /* Chrome / Safari / Brave */
+}
+
 :root {
   --bg: #fafafa;
   --sidebar: #f5f5f5;
