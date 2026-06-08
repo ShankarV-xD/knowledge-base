@@ -68,10 +68,11 @@ frontend. Authenticated via Google OAuth.
 
 An Android app that downloads from YouTube and 1000+ other sites using
 yt-dlp under the hood. Picks the best available format, merges audio
-streams automatically with FFmpegKit, shows live download speed and
-ETA, and saves straight to the gallery. Survives screen rotation.
+and video streams automatically via Android's built-in MediaMuxer,
+shows live download speed and ETA, and saves straight to the gallery.
+Survives screen rotation.
 
-**Stack:** Kotlin, Jetpack Compose, yt-dlp, FFmpegKit, Material 3.
+**Stack:** Kotlin, Jetpack Compose, yt-dlp, Chaquopy, Material 3.
 
 ## Which is most impressive?
 
