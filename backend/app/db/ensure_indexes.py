@@ -6,9 +6,10 @@ Creates:
   - Vector index on chunks.embedding when dimension ≤ 2000
     (pgvector HNSW/IVFFlat both cap at 2000 dims)
 
-Note: gemini-embedding-001 outputs 3072-dim vectors, which exceeds the
-pgvector index limit. Searches fall back to exact scan, which is perfectly
-fine for personal-scale datasets (< ~100k chunks).
+Note: gemini-embedding-001 outputs 3072-dim vectors, but they are truncated to
+768 dims (Matryoshka property), so the embedding column is vector(768) and the
+HNSW cosine index is created and used. The exact-scan fallback below only
+applies if a deployment runs embeddings above pgvector's 2000-dim index limit.
 """
 
 import logging
