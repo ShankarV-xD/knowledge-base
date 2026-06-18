@@ -10,7 +10,7 @@ Chat with your own notes. Import Obsidian vaults, Notion exports, PDFs, Word doc
 
 LLMs hallucinate when they don't know. RAG systems usually still hallucinate — they retrieve a few chunks and let the model fill the gaps with its training data. This system is built around one rule: **if the answer isn't in the retrieved chunks, the model says so.** Every response cites the source chunk by ID. Every citation links back to the document in a side panel.
 
-The other design priority is retrieval quality. A naive vector search returns "topically related" chunks that often miss the exact answer. This system combines vector similarity with BM25 keyword search, fuses them with Reciprocal Rank Fusion, and expands the query into three semantic variants before retrieving — which materially improves recall on short or ambiguous questions.
+The other design priority is retrieval quality. A naive vector search returns "topically related" chunks that often miss the exact answer. This system combines vector similarity with PostgreSQL full-text keyword search (`tsvector`), fuses them with Reciprocal Rank Fusion, and expands the query into three semantic variants before retrieving — which materially improves recall on short or ambiguous questions.
 
 ---
 
@@ -18,7 +18,7 @@ The other design priority is retrieval quality. A naive vector search returns "t
 
 - **Multi-format ingestion**: Obsidian (.zip vault), Notion (.zip export), PDF, DOCX, PPTX, XLSX, CSV, EPUB, HTML, markdown, plain text.
 - **Heading-aware chunking**: splits at markdown heading boundaries (not arbitrary character counts), preserving document structure.
-- **Hybrid retrieval**: pgvector ANN + PostgreSQL `tsvector` BM25 + Reciprocal Rank Fusion.
+- **Hybrid retrieval**: pgvector ANN + PostgreSQL `tsvector` full-text search + Reciprocal Rank Fusion.
 - **Query expansion**: each user question is rewritten into 3 semantic variants for broader recall.
 - **Streaming chat**: token-by-token over Server-Sent Events. Sources arrive first so citation badges render immediately.
 - **Conversation memory**: rolling summary every 10 messages keeps long chats coherent without blowing up the context window.
@@ -48,7 +48,7 @@ File upload
     │
     ▼
 ┌─────────────────┐
-│ Heading-aware   │    split at H1/H2/H3 boundaries
+│ Heading-aware   │    split at H1/H2 boundaries
 │   chunker       │    (preserves logical document structure)
 └─────────────────┘
     │
@@ -77,8 +77,9 @@ User question
     │
     ▼
 ┌──────────────────┐          ┌──────────────────┐
-│  pgvector ANN    │          │   BM25 (tsvector,│
-│  (cosine sim)    │          │      pg_trgm)    │
+│  pgvector ANN    │          │  Full-text search│
+│  (cosine sim)    │          │  (tsvector,      │
+│                  │          │   ts_rank_cd)    │
 └──────────────────┘          └──────────────────┘
         │                              │
         └───────────┬──────────────────┘
@@ -138,9 +139,9 @@ User message
 | Layer        | Technology                                                  |
 | ------------ | ----------------------------------------------------------- |
 | Chat LLM     | Google Gemini 2.0 Flash                                     |
-| Embeddings   | `gemini-embedding-001` (3072-dim)                           |
-| Vector DB    | Supabase Postgres + pgvector (exact scan above 2000 dims)   |
-| Full-text    | PostgreSQL `tsvector` + `pg_trgm`                           |
+| Embeddings   | `gemini-embedding-001` (3072-dim output truncated to 768)   |
+| Vector DB    | Supabase Postgres + pgvector (HNSW cosine index)            |
+| Full-text    | PostgreSQL `tsvector` (`plainto_tsquery` + `ts_rank_cd`)    |
 | Fusion       | Reciprocal Rank Fusion (RRF, k=60)                          |
 | Cache        | Upstash Redis (REST) with in-memory fallback                |
 | Backend      | FastAPI · Python 3.11 · SQLAlchemy 2 (async) · asyncpg      |
@@ -175,17 +176,16 @@ User message
 
 - Python 3.11+
 - Node.js 18+ and npm (or pnpm)
-- A free Supabase project (with `vector` and `pg_trgm` extensions enabled)
+- A free Supabase project (with the `vector` extension enabled)
 - A free Google AI Studio API key for Gemini
 - A free Upstash Redis instance (optional — falls back to in-memory)
 
 ### 1. Database setup
 
-In your Supabase SQL Editor, enable the required extensions:
+In your Supabase SQL Editor, enable the required extension:
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
 ```
 
 The application creates its own schema (users, documents, chunks, conversations, messages) idempotently on startup via `app/db/ensure_indexes.py`.
@@ -264,7 +264,10 @@ backend/
       queue.py       ── single-worker serialised ingestion
       parsers/       ── one module per file format
     retrieval/
-      hybrid.py      ── vector + BM25 + RRF
+      retriever.py   ── orchestrates vector + full-text + RRF
+      vector_search.py ── pgvector cosine ANN
+      bm25_search.py ── PostgreSQL full-text (tsvector) search
+      rrf.py         ── Reciprocal Rank Fusion
       expander.py    ── query expansion via Gemini
     chat/
       handler.py     ── streaming generation, source-first SSE
