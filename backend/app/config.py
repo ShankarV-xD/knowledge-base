@@ -23,6 +23,9 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        # Ignore unknown env vars (e.g. a stale ENABLE_TEST_LOGIN in .env) instead
+        # of crashing on startup.
+        extra = "ignore"
 
 
 settings = Settings()
