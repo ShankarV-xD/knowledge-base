@@ -9,10 +9,10 @@ from app.ingestion.embedder import embed_queries_batch
 
 
 async def retrieve(db, user_id, query, top_n=6,
-                   source_type=None, days=None) -> list[dict]:
-    query_variants = await expand_query(query)
+                   source_type=None, days=None, gemini_api_key=None) -> list[dict]:
+    query_variants = await expand_query(query, gemini_api_key)
     # One API call for all variants instead of N parallel calls
-    embeddings = await embed_queries_batch(query_variants)
+    embeddings = await embed_queries_batch(query_variants, gemini_api_key)
 
     vector_tasks = [
         vector_search(db, user_id, emb, limit=15, source_type=source_type, days=days)

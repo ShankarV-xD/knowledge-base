@@ -2,7 +2,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    gemini_api_key: str
+    # Optional: the app runs fully BYOK — every Gemini call uses the per-user
+    # key from the X-Gemini-Key header, never this field.
+    gemini_api_key: str = ""
     supabase_url: str
     supabase_service_key: str
     database_url: str

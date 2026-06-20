@@ -36,9 +36,13 @@ export async function uploadFile(file: File): Promise<UploadResponse> {
   const formData = new FormData();
   formData.append("file", file);
   const token = getToken();
+  const geminiKey = getGeminiKey();
   const res = await fetch(`${API_BASE}/api/upload`, {
     method: "POST",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(geminiKey ? { "X-Gemini-Key": geminiKey } : {}),
+    },
     body: formData,
   });
   if (!res.ok) throw new Error(`Upload failed: ${res.status}`);

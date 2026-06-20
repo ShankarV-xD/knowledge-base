@@ -2,7 +2,6 @@ import asyncio
 from datetime import date
 import google.generativeai as genai
 from sqlalchemy import text
-from app.config import settings
 from app.chat.prompts import DIGEST_PROMPT
 from app.db import crud
 
@@ -37,6 +36,13 @@ async def get_random_chunks(db, user_id, limit=20) -> list[dict]:
 
 
 async def generate_daily_digest(db, user_id, gemini_api_key=None) -> dict:
+    if not gemini_api_key:
+        return {
+            "date": str(date.today()),
+            "items": [],
+            "message": "Add your Gemini key to see your daily digest.",
+        }
+
     recent_topics = await get_recent_topics(db, user_id)
     candidate_chunks = await get_random_chunks(db, user_id, limit=20)
 
@@ -58,7 +64,7 @@ async def generate_daily_digest(db, user_id, gemini_api_key=None) -> dict:
         candidate_chunks=formatted,
     )
 
-    genai.configure(api_key=gemini_api_key or settings.gemini_api_key)
+    genai.configure(api_key=gemini_api_key)
     model = genai.GenerativeModel("gemini-2.0-flash")
 
     try:

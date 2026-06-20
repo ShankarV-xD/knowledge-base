@@ -30,9 +30,9 @@ async def detect_source_type(filename: str, content_type: str) -> str:
     return 'markdown'
 
 
-async def parse_file(file_bytes, filename, source_type, doc_title) -> list[RawChunk]:
+async def parse_file(file_bytes, filename, source_type, doc_title, gemini_api_key) -> list[RawChunk]:
     if source_type == 'pdf':
-        return await pdf.parse_pdf(file_bytes, doc_title)
+        return await pdf.parse_pdf(file_bytes, doc_title, gemini_api_key)
     if source_type == 'markdown':
         content = file_bytes.decode('utf-8', errors='replace')
         return markdown.parse_markdown_file(filename, content)
@@ -70,7 +70,7 @@ async def parse_file(file_bytes, filename, source_type, doc_title) -> list[RawCh
     return []
 
 
-async def _embed_and_store(db, doc_id, user_id, raw_chunks, doc_title):
+async def _embed_and_store(db, doc_id, user_id, raw_chunks, doc_title, gemini_api_key):
     """Shared helper: embed chunks and persist them. Returns True on success."""
     existing_hashes = await crud.get_existing_hashes(db, user_id)
     new_chunks = [c for c in raw_chunks if c.content_hash not in existing_hashes]
@@ -83,7 +83,7 @@ async def _embed_and_store(db, doc_id, user_id, raw_chunks, doc_title):
         )
         return True
 
-    embeddings = await embed_chunks(new_chunks)
+    embeddings = await embed_chunks(new_chunks, gemini_api_key)
 
     chunk_rows = []
     for chunk, embedding in zip(new_chunks, embeddings):
@@ -114,12 +114,12 @@ async def _embed_and_store(db, doc_id, user_id, raw_chunks, doc_title):
 
 
 async def process_document_background(doc_id, file_bytes, filename,
-                                       source_type, doc_title, user_id):
+                                       source_type, doc_title, user_id, gemini_api_key):
     async with AsyncSessionLocal() as db:
         try:
             await crud.update_document_status(db, doc_id, "processing")
 
-            raw_chunks = await parse_file(file_bytes, filename, source_type, doc_title)
+            raw_chunks = await parse_file(file_bytes, filename, source_type, doc_title, gemini_api_key)
             if not raw_chunks:
                 await crud.update_document_status(
                     db, doc_id, "error",
@@ -127,7 +127,7 @@ async def process_document_background(doc_id, file_bytes, filename,
                 )
                 return
 
-            await _embed_and_store(db, doc_id, user_id, raw_chunks, doc_title)
+            await _embed_and_store(db, doc_id, user_id, raw_chunks, doc_title, gemini_api_key)
 
         except Exception as e:
             await db.rollback()
@@ -135,11 +135,12 @@ async def process_document_background(doc_id, file_bytes, filename,
 
 
 async def retry_document_background(doc_id: str, user_id: str, file_path: str,
-                                     filename: str, source_type: str, doc_title: str):
+                                     filename: str, source_type: str, doc_title: str,
+                                     gemini_api_key: str):
     """Re-run ingestion for a document that previously failed."""
     # URL-sourced documents: re-fetch and re-process
     if file_path.startswith("http://") or file_path.startswith("https://"):
-        await process_url_background(doc_id, file_path, None, doc_title, user_id)
+        await process_url_background(doc_id, file_path, None, doc_title, user_id, gemini_api_key)
         return
 
     try:
@@ -153,11 +154,11 @@ async def retry_document_background(doc_id: str, user_id: str, file_path: str,
             )
         return
 
-    await process_document_background(doc_id, file_bytes, filename, source_type, doc_title, user_id)
+    await process_document_background(doc_id, file_bytes, filename, source_type, doc_title, user_id, gemini_api_key)
 
 
 async def process_url_background(doc_id: str, url: str, html_content,
-                                   doc_title: str, user_id: str):
+                                   doc_title: str, user_id: str, gemini_api_key: str):
     """Fetch a web page, extract text, chunk, embed, and store."""
     async with AsyncSessionLocal() as db:
         try:
@@ -195,7 +196,7 @@ async def process_url_background(doc_id: str, url: str, html_content,
                 )
                 return
 
-            await _embed_and_store(db, doc_id, user_id, raw_chunks, doc_title)
+            await _embed_and_store(db, doc_id, user_id, raw_chunks, doc_title, gemini_api_key)
 
         except Exception as e:
             await db.rollback()

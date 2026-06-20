@@ -1,6 +1,5 @@
 import asyncio
 import google.generativeai as genai
-from app.config import settings
 from app.db import crud
 from app.db.client import AsyncSessionLocal
 from app.chat.prompts import SUMMARISATION_PROMPT, TITLE_PROMPT
@@ -11,8 +10,10 @@ async def should_summarise(db, conv_id) -> bool:
     return conv is not None and conv.message_count > 0 and conv.message_count % 10 == 0
 
 
-async def update_conversation_memory(conv_id: str):
+async def update_conversation_memory(conv_id: str, gemini_api_key: str = None):
     """Runs in a background task with its own session — never shares the request session."""
+    if not gemini_api_key:
+        return
     async with AsyncSessionLocal() as db:
         conv = await crud.get_conversation(db, conv_id)
         if not conv:
@@ -26,7 +27,7 @@ async def update_conversation_memory(conv_id: str):
             existing_summary=conv.summary or "None", new_messages=formatted
         )
 
-        genai.configure(api_key=settings.gemini_api_key)
+        genai.configure(api_key=gemini_api_key)
         model = genai.GenerativeModel("gemini-2.0-flash")
 
         try:

@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import { uploadFile, importUrl } from "@/lib/api";
+import { getGeminiKey } from "@/lib/auth-token";
 
 type FileStatus = "uploading" | "done" | "error";
 type Tab = "file" | "url";
@@ -59,6 +60,13 @@ export default function DropZone({ onUploadComplete, show, onClose }: DropZonePr
     async (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
 
+      // Block uploads until a key is stored — embedding needs it.
+      if (!getGeminiKey()) {
+        resetAndClose();
+        window.dispatchEvent(new CustomEvent("open-gemini-key"));
+        return;
+      }
+
       // Show all files as "uploading" immediately
       setFileStatuses(
         Object.fromEntries(acceptedFiles.map((f) => [f.name, "uploading" as FileStatus]))
@@ -85,6 +93,12 @@ export default function DropZone({ onUploadComplete, show, onClose }: DropZonePr
   const handleUrlImport = async () => {
     const url = urlInput.trim();
     if (!url) return;
+    // Block imports until a key is stored — embedding needs it.
+    if (!getGeminiKey()) {
+      resetAndClose();
+      window.dispatchEvent(new CustomEvent("open-gemini-key"));
+      return;
+    }
     setUrlStatus("loading");
     setUrlError("");
     try {

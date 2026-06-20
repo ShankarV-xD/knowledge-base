@@ -1,7 +1,6 @@
 import io
 import asyncio
 import google.generativeai as genai
-from app.config import settings
 from app.ingestion.chunker import RawChunk, chunk_plain_text
 
 # Pages with fewer than this many chars of extracted text get vision fallback
@@ -49,10 +48,10 @@ def _render_page_as_png(pdf_bytes: bytes, page_num: int) -> bytes:
 
 
 async def _describe_page_with_vision(
-    pdf_bytes: bytes, page_num: int, title: str
+    pdf_bytes: bytes, page_num: int, title: str, gemini_api_key: str
 ) -> str:
     """Ask Gemini Vision to describe an image-heavy page. Free-tier friendly."""
-    genai.configure(api_key=settings.gemini_api_key)
+    genai.configure(api_key=gemini_api_key)
     try:
         png_bytes = await asyncio.get_event_loop().run_in_executor(
             None, _render_page_as_png, pdf_bytes, page_num
@@ -89,7 +88,7 @@ def _make_chunks(page_text: str, page_num: int, title: str,
     return chunks
 
 
-async def parse_pdf(pdf_bytes: bytes, title: str) -> list[RawChunk]:
+async def parse_pdf(pdf_bytes: bytes, title: str, gemini_api_key: str) -> list[RawChunk]:
     # 1. Try fast text extraction first
     pages = _extract_text_pypdf2(pdf_bytes)
 
@@ -114,7 +113,7 @@ async def parse_pdf(pdf_bytes: bytes, title: str) -> list[RawChunk]:
     # 4. Process image-heavy pages concurrently via Gemini Vision
     if image_page_nums:
         vision_tasks = [
-            _describe_page_with_vision(pdf_bytes, n, title)
+            _describe_page_with_vision(pdf_bytes, n, title, gemini_api_key)
             for n in image_page_nums
         ]
         descriptions = await asyncio.gather(*vision_tasks)

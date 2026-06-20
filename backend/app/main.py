@@ -41,8 +41,6 @@ def _validate_settings() -> None:
         )
     if settings.auth_secret.startswith("changeme"):
         warnings.append("AUTH_SECRET is still the default placeholder — change it before deploying!")
-    if not settings.gemini_api_key:
-        warnings.append("GEMINI_API_KEY is not set — chat will not work")
     if not settings.database_url:
         warnings.append("DATABASE_URL is not set — database connections will fail")
     for w in warnings:

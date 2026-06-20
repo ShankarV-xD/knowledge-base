@@ -8,6 +8,7 @@ import DocumentPreviewModal from "@/components/library/DocumentPreviewModal";
 import ConversationSearchModal from "@/components/ui/ConversationSearchModal";
 import DigestModal from "@/components/digest/DigestModal";
 import GeminiKeyModal from "@/components/ui/GeminiKeyModal";
+import { getGeminiKey } from "@/lib/auth-token";
 import { Conversation, Document } from "@/types";
 
 function useIsMobile() {
@@ -79,6 +80,11 @@ export default function AppShell({
     const handler = () => setGeminiKeyOpen(true);
     window.addEventListener("open-gemini-key", handler);
     return () => window.removeEventListener("open-gemini-key", handler);
+  }, []);
+
+  // No key stored yet — prompt for it on landing. Dismissible.
+  useEffect(() => {
+    if (!getGeminiKey()) setGeminiKeyOpen(true);
   }, []);
 
   // Handle "Ask about this" from Digest — navigate to chat if not already there,

@@ -1,5 +1,5 @@
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.client import get_db
@@ -112,9 +112,14 @@ async def get_document_chunks(
 @router.post("/{document_id}/retry")
 async def retry_document(
     document_id: str,
+    request: Request,
     current_user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    gemini_key = request.headers.get("x-gemini-key") or None
+    if not gemini_key:
+        raise HTTPException(400, "Add your Gemini API key before uploading.")
+
     doc = await crud.get_document(db, document_id)
     if not doc or doc.user_id != current_user_id:
         raise HTTPException(404, "Document not found")
@@ -132,7 +137,7 @@ async def retry_document(
         retry_document_background(
             document_id, current_user_id, doc.file_path,
             Path(doc.file_path).name if not is_url else "webpage",
-            doc.source_type, doc.title,
+            doc.source_type, doc.title, gemini_key,
         )
     )
     return {"status": "retrying"}

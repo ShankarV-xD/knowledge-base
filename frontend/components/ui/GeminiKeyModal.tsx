@@ -89,7 +89,7 @@ export default function GeminiKeyModal({ open, onClose }: GeminiKeyModalProps) {
                   <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
                 <p className="text-xs text-amber-400/80 leading-relaxed">
-                  The shared Gemini API key has a free-tier quota. Adding your own key gives you a separate quota - requests are sent directly from your browser to Gemini.
+                  I've had to ask you to bring your own Gemini key. I can't ship a single shared key because Gemini's free tier limits how many requests it allows per minute, and one shared key would hit that wall the moment a few people used the app at once. Your key stays in your browser and is only used for your own requests. Grab a free one from Google AI Studio and paste it below.
                 </p>
               </div>
 
@@ -114,7 +114,7 @@ export default function GeminiKeyModal({ open, onClose }: GeminiKeyModalProps) {
               <p className="text-xs text-secondary">
                 Don't have a key?{" "}
                 <a
-                  href="https://aistudio.google.com/app/api-keys"
+                  href="https://aistudio.google.com/app/apikey"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-accent hover:underline"

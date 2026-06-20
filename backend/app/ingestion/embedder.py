@@ -3,7 +3,6 @@ import hashlib
 import json
 from typing import Optional
 import google.generativeai as genai
-from app.config import settings
 from app.cache.redis_client import cache_get, cache_set
 from app.ingestion.chunker import RawChunk
 
@@ -17,9 +16,11 @@ def _query_cache_key(text: str) -> str:
     return f"emb_q:{_CACHE_VERSION}:{hashlib.sha256(text.encode()).hexdigest()[:24]}"
 
 
-async def embed_single(text: str) -> list[float]:
+async def embed_single(text: str, gemini_api_key: str) -> list[float]:
     """Embed a single query string. Results are cached for 1 hour."""
-    genai.configure(api_key=settings.gemini_api_key)
+    if not gemini_api_key:
+        raise ValueError("Gemini API key required for embeddings")
+    genai.configure(api_key=gemini_api_key)
 
     cache_key = _query_cache_key(text)
     cached = await cache_get(cache_key)
@@ -37,7 +38,7 @@ async def embed_single(text: str) -> list[float]:
     return embedding
 
 
-async def embed_queries_batch(texts: list[str]) -> list[list[float]]:
+async def embed_queries_batch(texts: list[str], gemini_api_key: str) -> list[list[float]]:
     """
     Embed multiple query strings in a single API call (one round-trip instead of N).
     Falls back to individual calls with asyncio.gather if the batch call fails.
@@ -46,7 +47,9 @@ async def embed_queries_batch(texts: list[str]) -> list[list[float]]:
     if not texts:
         return []
 
-    genai.configure(api_key=settings.gemini_api_key)
+    if not gemini_api_key:
+        raise ValueError("Gemini API key required for embeddings")
+    genai.configure(api_key=gemini_api_key)
 
     # Check cache for each text first
     results: list[Optional[list[float]]] = [None] * len(texts)
@@ -79,7 +82,7 @@ async def embed_queries_batch(texts: list[str]) -> list[list[float]]:
         )
     except Exception:
         # Fallback: embed individually in parallel
-        new_embeddings = list(await asyncio.gather(*[embed_single(t) for t in uncached_texts]))
+        new_embeddings = list(await asyncio.gather(*[embed_single(t, gemini_api_key) for t in uncached_texts]))
 
     for local_i, (global_i, embedding) in enumerate(zip(uncached_indices, new_embeddings)):
         results[global_i] = embedding
@@ -88,12 +91,14 @@ async def embed_queries_batch(texts: list[str]) -> list[list[float]]:
     return results  # type: ignore[return-value]
 
 
-async def embed_chunks(chunks: list[RawChunk]) -> list[Optional[list[float]]]:
+async def embed_chunks(chunks: list[RawChunk], gemini_api_key: str) -> list[Optional[list[float]]]:
     """
     Embed document chunks in batches of up to BATCH_SIZE.
     Results are cached by content_hash for 7 days.
     """
-    genai.configure(api_key=settings.gemini_api_key)
+    if not gemini_api_key:
+        raise ValueError("Gemini API key required for embeddings")
+    genai.configure(api_key=gemini_api_key)
     embeddings: list[Optional[list[float]]] = [None] * len(chunks)
     uncached_indices: list[int] = []
     uncached_texts: list[str] = []

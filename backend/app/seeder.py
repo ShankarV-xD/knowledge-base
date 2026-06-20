@@ -81,10 +81,18 @@ async def seed_demo_documents_if_needed() -> None:
                 file_path=None,
             )
 
+            # Demo seeding is the one ingestion path with no per-user request.
+            # It uses settings.gemini_api_key if the owner set one; in a pure
+            # no-server-key deploy this is empty and embedding is skipped — the
+            # seed document lands in error state, which is acceptable.
+            if not settings.gemini_api_key:
+                logger.info("Seeder: skipping %s (no server Gemini key for demo seeding)", title)
+                continue
+
             await enqueue_ingestion(
                 process_document_background(
                     str(doc.id), file_bytes, path.name,
-                    "markdown", title, user_id,
+                    "markdown", title, user_id, settings.gemini_api_key,
                 )
             )
             logger.info("Seeder: queued %s for demo user", title)

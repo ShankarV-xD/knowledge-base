@@ -106,11 +106,13 @@ export async function streamChat(
               onError(event.message || "Generation failed");
               break;
             case "quota_exceeded":
+            case "missing_key":
+            case "invalid_key":
               gotDone = true;
               if (onQuotaExceeded) {
-                onQuotaExceeded(event.message || "Free quota exhausted. Add your own API key to continue.");
+                onQuotaExceeded(event.message || "Add your Gemini API key to continue.");
               } else {
-                onError(event.message || "Free quota exhausted");
+                onError(event.message || "Add your Gemini API key to continue.");
               }
               break;
           }

@@ -3,7 +3,7 @@ import re
 import uuid
 from pathlib import Path
 from urllib.parse import urlparse
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.client import get_db
@@ -18,12 +18,17 @@ router = APIRouter(prefix="/api/upload", tags=["upload"])
 
 @router.post("")
 async def upload_file(
+    request: Request,
     file: UploadFile = File(...),
     current_user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     if not file.filename:
         raise HTTPException(400, "No filename provided")
+
+    gemini_key = request.headers.get("x-gemini-key") or None
+    if not gemini_key:
+        raise HTTPException(400, "Add your Gemini API key before uploading.")
 
     file_bytes = await file.read()
     max_bytes = settings.max_upload_size_mb * 1024 * 1024
@@ -47,7 +52,7 @@ async def upload_file(
     await enqueue_ingestion(
         process_document_background(
             str(doc.id), file_bytes, file.filename,
-            source_type, doc_title, current_user_id,
+            source_type, doc_title, current_user_id, gemini_key,
         )
     )
 
@@ -66,9 +71,14 @@ class UrlImportRequest(BaseModel):
 @router.post("/url")
 async def import_url(
     req: UrlImportRequest,
+    request: Request,
     current_user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    gemini_key = request.headers.get("x-gemini-key") or None
+    if not gemini_key:
+        raise HTTPException(400, "Add your Gemini API key before uploading.")
+
     url = req.url.strip()
     if not url.startswith(("http://", "https://")):
         raise HTTPException(400, "URL must start with http:// or https://")
@@ -96,7 +106,7 @@ async def import_url(
     )
 
     await enqueue_ingestion(
-        process_url_background(str(doc.id), url, html_content, doc_title, current_user_id)
+        process_url_background(str(doc.id), url, html_content, doc_title, current_user_id, gemini_key)
     )
 
     return {
