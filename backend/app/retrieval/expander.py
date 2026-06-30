@@ -12,7 +12,7 @@ async def expand_query(query: str, gemini_api_key: str = None) -> list[str]:
     if not gemini_api_key:
         return [query]
     genai.configure(api_key=gemini_api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash-lite")
     try:
         response = await asyncio.get_event_loop().run_in_executor(
             None, lambda: model.generate_content(EXPANSION_PROMPT.format(query=query))

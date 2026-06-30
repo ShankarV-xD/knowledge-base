@@ -2,11 +2,12 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Optional: the app runs fully BYOK — every Gemini call uses the per-user
-    # key from the X-Gemini-Key header, never this field.
+    # The per-user X-Gemini-Key header drives every Gemini call. Outside
+    # production this server key is used as a local-dev fallback; in production
+    # leave it empty so the app stays pure BYOK.
     gemini_api_key: str = ""
-    supabase_url: str
-    supabase_service_key: str
+    supabase_url: str = ""
+    supabase_service_key: str = ""
     database_url: str
     supabase_storage_bucket: str = "knowledge-base-files"
     upstash_redis_rest_url: str = ""
@@ -20,6 +21,9 @@ class Settings(BaseSettings):
     # shared demo user so visitors can try the app without signing up
     enable_demo_login: bool = True
     demo_email: str = "demo@knowledge-base.app"
+    # "production" enforces BYOK (no server-key fallback). Any other value
+    # (the default) lets the server fall back to GEMINI_API_KEY for local dev.
+    environment: str = "development"
 
     class Config:
         env_file = ".env"
@@ -29,3 +33,14 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def resolve_gemini_key(header_key):
+    """The per-request user key (X-Gemini-Key) always wins. Outside production,
+    fall back to the server GEMINI_API_KEY (set it in .env for local dev). In
+    production there is no fallback, so each request must bring its own key."""
+    if header_key:
+        return header_key
+    if settings.environment != "production":
+        return settings.gemini_api_key
+    return ""

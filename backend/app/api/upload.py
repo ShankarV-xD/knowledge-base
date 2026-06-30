@@ -11,7 +11,8 @@ from app.db import crud
 from app.ingestion.pipeline import detect_source_type, process_document_background, process_url_background
 from app.ingestion.queue import enqueue_ingestion
 from app.auth.dependency import get_current_user
-from app.config import settings
+from app.config import settings, resolve_gemini_key
+from app.storage import supabase_storage
 
 router = APIRouter(prefix="/api/upload", tags=["upload"])
 
@@ -26,7 +27,7 @@ async def upload_file(
     if not file.filename:
         raise HTTPException(400, "No filename provided")
 
-    gemini_key = request.headers.get("x-gemini-key") or None
+    gemini_key = resolve_gemini_key(request.headers.get("x-gemini-key"))
     if not gemini_key:
         raise HTTPException(400, "Add your Gemini API key before uploading.")
 
@@ -38,15 +39,28 @@ async def upload_file(
     source_type = await detect_source_type(file.filename, file.content_type or "")
     doc_title = Path(file.filename).stem
 
-    os.makedirs(settings.upload_dir, exist_ok=True)
     file_id = uuid.uuid4()
-    saved_path = os.path.join(settings.upload_dir, f"{file_id}_{file.filename}")
-    with open(saved_path, "wb") as f:
-        f.write(file_bytes)
+    safe_name = Path(file.filename).name
+    if supabase_storage.is_configured():
+        try:
+            stored_ref = await supabase_storage.upload_bytes(
+                f"{current_user_id}/{file_id}_{safe_name}",
+                file_bytes,
+                file.content_type or "application/octet-stream",
+            )
+        except Exception as e:
+            print(f"[upload] Supabase Storage upload failed: {e}")
+            raise HTTPException(502, "Failed to store file in Supabase Storage")
+    else:
+        os.makedirs(settings.upload_dir, exist_ok=True)
+        saved_path = os.path.join(settings.upload_dir, f"{file_id}_{safe_name}")
+        with open(saved_path, "wb") as f:
+            f.write(file_bytes)
+        stored_ref = saved_path
 
     doc = await crud.create_document(
         db, user_id=current_user_id, title=doc_title,
-        source_type=source_type, file_path=saved_path,
+        source_type=source_type, file_path=stored_ref,
     )
 
     await enqueue_ingestion(
@@ -75,7 +89,7 @@ async def import_url(
     current_user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    gemini_key = request.headers.get("x-gemini-key") or None
+    gemini_key = resolve_gemini_key(request.headers.get("x-gemini-key"))
     if not gemini_key:
         raise HTTPException(400, "Add your Gemini API key before uploading.")
 

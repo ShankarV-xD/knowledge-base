@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { getDocumentChunks } from "@/lib/api";
 import type { DocumentPreview } from "@/lib/api";
 import type { Document } from "@/types";
@@ -36,6 +38,28 @@ const SOURCE_LABELS: Record<string, string> = {
   epub: "EPUB",
   html: "HTML",
 };
+
+const CHUNK_MD_COMPONENTS: Components = {
+  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+  strong: ({ children }) => <strong className="font-semibold text-primary-dark">{children}</strong>,
+  em: ({ children }) => <em className="italic">{children}</em>,
+  h1: ({ children }) => <h1 className="text-sm font-semibold text-primary-dark mt-3 mb-1.5 first:mt-0">{children}</h1>,
+  h2: ({ children }) => <h2 className="text-sm font-semibold text-primary-dark mt-3 mb-1.5 first:mt-0">{children}</h2>,
+  h3: ({ children }) => <h3 className="text-[13px] font-medium text-primary-dark mt-2 mb-1 first:mt-0">{children}</h3>,
+  ul: ({ children }) => <ul className="list-disc list-outside ml-4 mb-2 space-y-1">{children}</ul>,
+  ol: ({ children }) => <ol className="list-decimal list-outside ml-4 mb-2 space-y-1">{children}</ol>,
+  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+  code: ({ children }) => <code className="bg-surface-dark border border-border-dark rounded px-1 py-0.5 text-xs font-mono">{children}</code>,
+  a: ({ href, children }) => <a href={href} className="text-accent underline underline-offset-2" target="_blank" rel="noopener noreferrer">{children}</a>,
+  blockquote: ({ children }) => <blockquote className="border-l-2 border-accent/40 pl-3 text-secondary italic mb-2">{children}</blockquote>,
+  hr: () => <hr className="border-border-dark my-2" />,
+};
+
+// The chunk's heading is shown as a label above each chunk, so drop a leading
+// markdown heading line from the body to avoid showing it twice.
+function stripLeadingHeading(content: string): string {
+  return content.replace(/^\s*#{1,6}[ \t]+[^\n]*\n+/, "");
+}
 
 function Spinner() {
   return (
@@ -129,7 +153,7 @@ export default function DocumentPreviewModal({ document, onClose }: DocumentPrev
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className="relative w-full max-w-3xl max-h-[88vh] bg-sidebar-dark border border-border-dark rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            className="relative w-full max-w-3xl h-[80vh] bg-sidebar-dark border border-border-dark rounded-2xl shadow-2xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -204,28 +228,33 @@ export default function DocumentPreviewModal({ document, onClose }: DocumentPrev
 
               {!loading && filteredChunks.map((chunk, i) => (
                 <div key={chunk.id} className="group">
-                  {/* Heading / page indicator */}
-                  {(chunk.heading || chunk.page_number) && (
-                    <div className="flex items-center gap-2 mb-1.5">
-                      {chunk.heading && (
-                        <span className="text-xs font-medium text-accent truncate">{chunk.heading}</span>
-                      )}
-                      {chunk.page_number && (
-                        <span className="text-[10px] text-secondary flex-shrink-0 bg-surface-dark border border-border-dark rounded px-1.5 py-0.5">
-                          p.{chunk.page_number}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="relative rounded-xl bg-surface-dark border border-border-dark px-4 py-3">
-                    {/* Chunk index badge — based on sorted position */}
-                    <span className="absolute -top-2 left-3 text-[10px] text-secondary bg-surface-dark border border-border-dark rounded px-1.5 py-0.5">
+                  {/* Header row: chunk index, heading, page (kept on one line) */}
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-[10px] text-secondary flex-shrink-0 bg-surface-dark border border-border-dark rounded px-1.5 py-0.5">
                       {i + 1}
                     </span>
-                    <p className="text-sm text-primary-dark/85 leading-relaxed whitespace-pre-wrap">
-                      {highlightText(chunk.content, debouncedSearch)}
-                    </p>
+                    {chunk.heading && (
+                      <span className="text-xs font-medium text-accent truncate">{chunk.heading}</span>
+                    )}
+                    {chunk.page_number && (
+                      <span className="text-[10px] text-secondary flex-shrink-0 bg-surface-dark border border-border-dark rounded px-1.5 py-0.5">
+                        p.{chunk.page_number}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl bg-surface-dark border border-border-dark px-4 py-3">
+                    {debouncedSearch.trim() ? (
+                      <p className="text-sm text-primary-dark/85 leading-relaxed whitespace-pre-wrap">
+                        {highlightText(chunk.content, debouncedSearch)}
+                      </p>
+                    ) : (
+                      <div className="prose-chat text-sm text-primary-dark/85 leading-relaxed">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={CHUNK_MD_COMPONENTS}>
+                          {stripLeadingHeading(chunk.content)}
+                        </ReactMarkdown>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

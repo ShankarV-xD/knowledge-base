@@ -60,8 +60,9 @@ export default function DropZone({ onUploadComplete, show, onClose }: DropZonePr
     async (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
 
-      // Block uploads until a key is stored — embedding needs it.
-      if (!getGeminiKey()) {
+      // Block uploads until a key is stored — embedding needs it. (Local dev
+      // uses the server key, so skip the gate on localhost.)
+      if (!/^(localhost|127\.0\.0\.1)$/.test(window.location.hostname) && !getGeminiKey()) {
         resetAndClose();
         window.dispatchEvent(new CustomEvent("open-gemini-key"));
         return;
@@ -93,8 +94,9 @@ export default function DropZone({ onUploadComplete, show, onClose }: DropZonePr
   const handleUrlImport = async () => {
     const url = urlInput.trim();
     if (!url) return;
-    // Block imports until a key is stored — embedding needs it.
-    if (!getGeminiKey()) {
+    // Block imports until a key is stored — embedding needs it. (Local dev
+    // uses the server key, so skip the gate on localhost.)
+    if (!/^(localhost|127\.0\.0\.1)$/.test(window.location.hostname) && !getGeminiKey()) {
       resetAndClose();
       window.dispatchEvent(new CustomEvent("open-gemini-key"));
       return;

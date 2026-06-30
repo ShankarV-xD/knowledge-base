@@ -82,9 +82,11 @@ export default function AppShell({
     return () => window.removeEventListener("open-gemini-key", handler);
   }, []);
 
-  // No key stored yet — prompt for it on landing. Dismissible.
+  // No key stored yet — prompt for it on landing (production only; local dev
+  // falls back to the server key). Dismissible.
   useEffect(() => {
-    if (!getGeminiKey()) setGeminiKeyOpen(true);
+    const isLocal = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+    if (!isLocal && !getGeminiKey()) setGeminiKeyOpen(true);
   }, []);
 
   // Handle "Ask about this" from Digest — navigate to chat if not already there,

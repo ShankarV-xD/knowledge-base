@@ -17,15 +17,15 @@ export default function IngestionProgress({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      className="mx-4 mt-2"
+      initial={{ opacity: 0, y: -8, x: "-50%" }}
+      animate={{ opacity: 1, y: 0, x: "-50%" }}
+      exit={{ opacity: 0, y: -8, x: "-50%" }}
+      className="fixed top-5 left-1/2 z-50 w-[min(90vw,440px)] pointer-events-none"
     >
       {processing.map((doc) => (
         <div
           key={doc.id}
-          className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-surface-dark border border-border-dark mb-2"
+          className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-surface-dark border border-border-dark shadow-xl mb-2"
         >
           <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
           <div className="flex-1 min-w-0">

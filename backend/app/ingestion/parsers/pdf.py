@@ -56,7 +56,7 @@ async def _describe_page_with_vision(
         png_bytes = await asyncio.get_event_loop().run_in_executor(
             None, _render_page_as_png, pdf_bytes, page_num
         )
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         prompt = (
             f"This is page {page_num} of a document titled '{title}'. "
             "Extract and transcribe ALL visible content: text, headings, labels, "

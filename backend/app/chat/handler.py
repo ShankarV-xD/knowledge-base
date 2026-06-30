@@ -25,7 +25,7 @@ async def generate_title(user_message: str, response_snippet: str, gemini_api_ke
     """Generate a short conversation title from the first exchange."""
     try:
         genai.configure(api_key=gemini_api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash-lite")
         prompt = (
             f"Generate a concise 4-7 word title for a conversation that starts with this question:\n"
             f'"{user_message[:300]}"\n\n'
@@ -85,7 +85,7 @@ async def stream_chat_response(
                             chunk_ids=[c["id"] for c in chunks],
                             filter_source_type=source_type, filter_days=days)
 
-    model = genai.GenerativeModel("gemini-2.0-flash", system_instruction=system)
+    model = genai.GenerativeModel("gemini-2.5-flash-lite", system_instruction=system)
 
     def _generate():
         return model.generate_content(user_message, stream=True)
@@ -139,8 +139,12 @@ async def stream_chat_response(
     if await should_summarise(db, conversation_id):
         asyncio.create_task(update_conversation_memory(conversation_id, gemini_api_key))
 
-    # Title generation runs in background — done event fires immediately after tokens
+    # Title the conversation instantly from the first message so the sidebar
+    # shows a real title the moment the answer finishes (no extra LLM call/delay).
     if is_first_message and not conv.title:
-        asyncio.create_task(_save_title(conversation_id, user_message, full_response[:300], gemini_api_key))
+        title = user_message.strip().replace("\n", " ")
+        if len(title) > 48:
+            title = title[:48].rsplit(" ", 1)[0].rstrip() + "..."
+        await crud.rename_conversation(db, conversation_id, title)
 
     yield f"data: {json.dumps({'type': 'done', 'conversation_id': conversation_id})}\n\n"

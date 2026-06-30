@@ -8,6 +8,7 @@ from app.db import crud
 from app.chat.handler import stream_chat_response
 from app.auth.dependency import get_current_user
 from app.middleware.rate_limit import check_rate_limit
+from app.config import resolve_gemini_key
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -31,7 +32,7 @@ async def send_message(
     if not req.message.strip():
         raise HTTPException(400, "Message cannot be empty")
 
-    gemini_key = request.headers.get("x-gemini-key") or None
+    gemini_key = resolve_gemini_key(request.headers.get("x-gemini-key"))
 
     if req.conversation_id:
         conv = await crud.get_conversation(db, req.conversation_id)

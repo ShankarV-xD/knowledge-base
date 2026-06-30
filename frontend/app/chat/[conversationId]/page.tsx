@@ -467,25 +467,22 @@ export default function ChatPage() {
 }
 
 const DEMO_QUESTIONS = [
-  "Who is Shankar and what does he do?",
-  "What's the most impressive project Shankar has built?",
-  "Why did Shankar build the Agentic Web Researcher from scratch instead of using LangChain?",
-  "What does Shankar work on at Randomwalk AI?",
-  "What's Shankar's tech stack?",
-  "How can a recruiter contact Shankar?",
+  "What's the most impressive project here?",
+  "Why not just use LangChain for the agent?",
+  "What's the tech stack and main skills?",
+  "How can a recruiter get in touch?",
 ];
 
 function DemoSuggestions({ onPick }: { onPick: (q: string) => void }) {
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
-      <div className="text-center mb-6">
+    <div className="max-w-2xl mx-auto px-4 py-4">
+      <div className="text-center mb-4">
         <p className="text-[11px] uppercase tracking-widest text-accent mb-2">Demo</p>
-        <h2 className="text-xl font-semibold text-primary-dark mb-2">
+        <h2 className="text-xl font-semibold text-primary-dark mb-1.5">
           Ask anything about Shankar
         </h2>
         <p className="text-sm text-secondary">
-          The demo account has three documents loaded about Shankar's background, projects, and work.
-          Try one of these, or type your own question.
+          Three documents about Shankar are loaded. Try one, or ask your own.
         </p>
       </div>
       <div className="grid sm:grid-cols-2 gap-2">

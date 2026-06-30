@@ -117,15 +117,6 @@ function RetryIcon() {
   );
 }
 
-function Spinner({ size = 20 }: { size?: number }) {
-  return (
-    <svg className="animate-spin" width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-    </svg>
-  );
-}
-
 function LogoutIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -391,11 +382,16 @@ export default function Sidebar({
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.92 }}
-              className="flex flex-col items-center gap-4 bg-surface-dark border border-border-dark rounded-2xl px-8 py-6 shadow-2xl"
+              className="flex flex-col items-center justify-center gap-4 bg-surface-dark border border-border-dark rounded-2xl px-8 py-6 shadow-2xl max-w-xs w-full mx-4 min-h-[220px]"
             >
               {deleteState.status === "deleting" ? (
                 <>
-                  <Spinner />
+                  <div className="w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center">
+                    <svg className="animate-spin text-accent" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  </div>
                   <div className="text-center">
                     <p className="text-sm font-medium text-primary-dark">Deleting</p>
                     <p className="text-xs text-secondary mt-0.5 max-w-[200px] truncate">
@@ -435,7 +431,7 @@ export default function Sidebar({
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.92 }}
-              className="flex flex-col items-center gap-4 bg-surface-dark border border-border-dark rounded-2xl px-8 py-6 shadow-2xl max-w-xs w-full mx-4"
+              className="flex flex-col items-center justify-center gap-4 bg-surface-dark border border-border-dark rounded-2xl px-8 py-6 shadow-2xl max-w-xs w-full mx-4 min-h-[220px]"
             >
               <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center">
                 <TrashIcon />
@@ -480,7 +476,7 @@ export default function Sidebar({
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.92 }}
-              className="flex flex-col items-center gap-4 bg-surface-dark border border-border-dark rounded-2xl px-8 py-6 shadow-2xl max-w-xs w-full mx-4"
+              className="flex flex-col items-center justify-center gap-4 bg-surface-dark border border-border-dark rounded-2xl px-8 py-6 shadow-2xl max-w-xs w-full mx-4 min-h-[220px]"
             >
               <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center">
                 <TrashIcon />

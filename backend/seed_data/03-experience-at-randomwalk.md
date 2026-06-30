@@ -41,7 +41,7 @@ campaign monitoring.
 ## Workplace Safety & Exclusion Zones
 
 A computer vision system that detects safety breaches across 200+
-workers in real time — PPE compliance, unsafe postures, signage
+workers in real time: PPE compliance, unsafe postures, signage
 violations. Sub-200ms latency end-to-end. After two months of
 deployment, SOP violations at the monitored sites dropped by around
 30%.
@@ -60,7 +60,7 @@ work:
    when ML systems hit real users.
 
 2. **Production discipline.** The bar for these systems isn't a demo
-   that works on a clean dataset — it's a system that doesn't break
+   that works on a clean dataset; it's a system that doesn't break
    when a fuel station goes offline at 3 AM, when a worker stands in
    front of a camera in unusual lighting, or when an architect uploads
    a 200-page drawing.

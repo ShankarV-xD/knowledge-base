@@ -29,15 +29,16 @@ Redis is down), and serialises concurrent users through a semaphore.
 ## Knowledge Base
 
 The application you're using right now. A personal RAG system that lets
-you chat with your own documents — Obsidian vaults, Notion exports,
+you chat with your own documents: Obsidian vaults, Notion exports,
 PDFs, markdown files. It uses hybrid retrieval: vector search via
-pgvector combined with BM25 keyword search, fused with Reciprocal Rank
-Fusion. Heading-aware chunking preserves document structure. The LLM
-expands the user's query into multiple semantic variants before search,
-which materially improves recall on short questions.
+pgvector combined with PostgreSQL full-text keyword search, fused with
+Reciprocal Rank Fusion. Heading-aware chunking preserves document
+structure. The LLM expands the user's query into multiple semantic
+variants before search, which materially improves recall on short
+questions.
 
 **What's interesting:** the system answers strictly from the user's
-documents — no general knowledge bleed-through — and every answer
+documents (no general knowledge bleed-through), and every answer
 includes inline citations to the source chunk. Conversation memory is
 rolling, so follow-ups stay coherent without blowing up the context
 window.
@@ -50,29 +51,32 @@ A developer toolbelt that figures out what you've pasted and gives you
 the right tool. Paste a JWT, it decodes and verifies it. Paste JSON, it
 opens an interactive tree. Paste a cron expression, it explains the
 schedule. Paste a hex colour, it shows you the colour. Monaco editor,
-44 tests, no backend — just runs entirely in the browser.
+over 100 tests, and it all runs in the browser.
 
-**Stack:** Next.js, TypeScript, Monaco Editor, Tailwind, Zustand.
+**Stack:** Next.js, TypeScript, Monaco Editor, Tailwind, Web Workers.
 
 ## DriveFlix
 
-Streams video files directly from a Google Drive Shared Drive into a
-browser with instant seeking, multiple audio tracks, and subtitle
-support — without copying, transcoding, or storing the files anywhere.
-Range-request proxying through FastAPI plus Shaka Player on the
-frontend. Authenticated via Google OAuth.
+Streams video straight from a Google Drive Shared Drive into a
+Netflix-style browser UI. Files the browser can play natively stream
+instantly over a range-request passthrough proxy; anything it can't
+(MKV, HEVC, multi-track audio, embedded subtitles) is transcoded on the
+fly with FFmpeg. Custom HTML5 player, full-text library search with
+SQLite FTS5, subtitle styling, and synced watch history. Signed in with
+Google OAuth. There is also a native Android TV app, built with Compose
+for TV, that shares the same backend and account.
 
-**Stack:** React, FastAPI, Shaka Player, FFmpeg, Google OAuth.
+**Stack:** React, FastAPI, FFmpeg, SQLite, Compose for TV, Google OAuth.
 
 ## NexusDL
 
 An Android app that downloads from YouTube and 1000+ other sites using
-yt-dlp under the hood. Picks the best available format, merges audio
-and video streams automatically via Android's built-in MediaMuxer,
-shows live download speed and ETA, and saves straight to the gallery.
-Survives screen rotation.
+yt-dlp, running a full Python interpreter on-device through Chaquopy.
+Picks the best available format, merges separate audio and video
+streams with FFmpeg, shows live download speed and ETA, and saves
+straight to the Downloads folder. Survives screen rotation.
 
-**Stack:** Kotlin, Jetpack Compose, yt-dlp, Chaquopy, Material 3.
+**Stack:** Kotlin, Jetpack Compose, yt-dlp, Chaquopy, FFmpeg, Material 3.
 
 ## Which is most impressive?
 

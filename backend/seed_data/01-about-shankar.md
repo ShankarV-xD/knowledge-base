@@ -14,14 +14,14 @@ finishing with a CGPA of 9.38.
 
 Shankar's day-to-day work is split between three things:
 
-- **Computer vision systems** — real-time video analytics, custom object
+- **Computer vision systems**: real-time video analytics, custom object
   detection models (YOLOv8/v11), and the production pipelines that serve
   them. His CV work runs on Runpod GPUs and serves hundreds of users daily
   across the Middle East and Australia.
-- **Autonomous agents** — multi-step research agents that search, read,
+- **Autonomous agents**: multi-step research agents that search, read,
   reason, and synthesise cited answers. Built without LangChain to keep
   the reasoning loop transparent and debuggable.
-- **Backends that hold everything together** — FastAPI services with
+- **Backends that hold everything together**: FastAPI services with
   pgvector, Redis caching, async task queues, and the kind of observability
   needed to actually debug production issues at 2 AM.
 
@@ -43,11 +43,11 @@ Next.js, Tailwind).
 - GitHub: github.com/ShankarV-xD
 - LinkedIn: linkedin.com/in/shankar--v
 - Email: shankarv1012@gmail.com
-- Portfolio: https://sv-portfolio.vercel.app
+- Portfolio: https://shankarv-portfolio.vercel.app
 
 ## What he's looking for
 
 Full-time roles where he can work on AI applications that ship to real
-users — computer vision, autonomous agents, or AI-augmented developer
+users: computer vision, autonomous agents, or AI-augmented developer
 tools. Open to freelance projects in the same space. Based in Chennai but
 comfortable working with distributed teams across timezones.

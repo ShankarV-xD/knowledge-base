@@ -6,6 +6,7 @@ from app.db.client import AsyncSessionLocal
 from app.ingestion.chunker import RawChunk, chunk_markdown
 from app.ingestion.embedder import embed_chunks
 from app.ingestion.parsers import markdown, obsidian, notion, pdf
+from app.storage import supabase_storage
 
 
 async def detect_source_type(filename: str, content_type: str) -> str:
@@ -144,8 +145,11 @@ async def retry_document_background(doc_id: str, user_id: str, file_path: str,
         return
 
     try:
-        with open(file_path, "rb") as f:
-            file_bytes = f.read()
+        if supabase_storage.is_storage_ref(file_path):
+            file_bytes = await supabase_storage.download_bytes(file_path)
+        else:
+            with open(file_path, "rb") as f:
+                file_bytes = f.read()
     except Exception as e:
         async with AsyncSessionLocal() as db:
             await crud.update_document_status(

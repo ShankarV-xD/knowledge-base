@@ -28,7 +28,7 @@ async def update_conversation_memory(conv_id: str, gemini_api_key: str = None):
         )
 
         genai.configure(api_key=gemini_api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash-lite")
 
         try:
             response = await asyncio.get_event_loop().run_in_executor(
